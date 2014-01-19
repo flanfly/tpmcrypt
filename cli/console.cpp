@@ -54,19 +54,19 @@ main(int argc, char** argv)
 		cout << it->first << "\t" << it->second.first << "\t" << it->second.second << endl;
 	}
 
-	//KeyFile keyFile("keyfile.vol");
+	KeyFile keyFile("keyfile.vol");
 	//Volume volume("foo", "/dev/loop0", "blah", CryptSetup::TAG, "foo");
         //keyFile.add(volume);
-	
+
 	/*unsigned char tmp[] = "foo";
 	TpmStateMachine tpmState;
-        
+
         SecureMem<unsigned char> password(tmp, 4);
         SecureMem<unsigned char> toEncrypt(tmp, 4);
-        
+
         vector<string> data = CryptoBackend().initBlob(toEncrypt, password);
         SecureMem<unsigned char> foo = CryptoBackend().decryptBlob(data.at(0), password, data.at(1), data.at(2));
-        
+
         cout << "encrypted" << data.at(0) << endl;
         cout << "iv" << data.at(1) << endl;
         cout << "salt" << data.at(2) << endl;
@@ -106,7 +106,7 @@ main(int argc, char** argv)
 	    tool.createVolume("/dev/loop0", secpw, true, AES, CBC, SHA1, S256, RANDOM);
 	    AuthenticationProtocol foo(vol);
 	 */
-	//SecureMem<char> foo = CryptoBackend().generateRandomString(64, false); 
+	//SecureMem<char> foo = CryptoBackend().generateRandomString(64, false);
 	//cout << foo.getAsUnsecureString() << endl;
 	//TpmStateMachine();
 	return 0;

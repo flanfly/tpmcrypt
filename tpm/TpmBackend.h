@@ -82,7 +82,7 @@ namespace tpm {
         T11,
         T10
     };
-    
+
     static struct {
         unsigned pcr;
         std::string description;
@@ -127,11 +127,14 @@ namespace tpm {
         unsigned getPcrSize();
         TpmGlobalState getState();
         TpmManufactur getTpmManufactur();
+        TpmVersion getVersion();
         void clear(utils::SecureMem<char> ownerPassword);
         void own(utils::SecureMem<char> ownerPassword, utils::SecureMem<char> srkPassword);
         std::string seal(utils::SecureMem<char> toSeal, int loc, std::vector<unsigned int> pcrs, utils::SecureMem<char> password);
         utils::SecureMem<char> unseal(const std::string &toUnseal, utils::SecureMem<char> password);
         utils::SecureMem<char> getRandom(size_t count);
+        //std::vector<std::string> quoteNow( utils::SecureMem<char> srkPassword, std::string aik );
+
 
     private:
 

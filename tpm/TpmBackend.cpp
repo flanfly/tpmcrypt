@@ -65,6 +65,7 @@ TpmBackend::~TpmBackend ( ) {
     Tspi_Context_Close(hContext);
 }
 
+/*
 vector<string> TpmBackend::quoteNow( SecureMem<char> srkPassword, string aik ) {
     TSS_RESULT err;
     TSS_HPCRS hPCR;
@@ -77,15 +78,15 @@ vector<string> TpmBackend::quoteNow( SecureMem<char> srkPassword, string aik ) {
     UINT32 *versionInfoLen;
     BYTE *versionInfo;
     UINT32 aikLen;
-    BYTE* aikBlob;
+    const BYTE* aikBlob;
     vector<string> quote;
     TPM_QUOTE_INFO *quoteInfo;
     TPM_QUOTE_INFO2 *quote2Info;
 
     aikLen = aik.length();
-    aikBlob = reinterpret_cast < BYTE* > (aik.c_str());
+    aikBlob = reinterpret_cast < const BYTE* > (aik.c_str());
 
-    hValid.ulExternalDataLength = srkPassword.isEmpty() ? TPM_SHA1_160_HASH_LEN : srkPassword.getLen()
+    hValid.ulExternalDataLength = srkPassword.isEmpty() ? TPM_SHA1_160_HASH_LEN : srkPassword.getLen();
     hValid.rgbExternalData = srkPassword.isEmpty() ? well_known_secret : reinterpret_cast < BYTE* > (srkPassword.getPointer());
 
     err = Tspi_Context_LoadKeyByUUID(hContext, TSS_PS_TYPE_SYSTEM, SRK_UUID, &hSRK);
@@ -158,7 +159,7 @@ vector<string> TpmBackend::quoteNow( SecureMem<char> srkPassword, string aik ) {
     } catch ( exception &e ) {
 
     }
-}
+}*/
 
 void TpmBackend::preCalculatePcr ( ) {
 
@@ -281,10 +282,7 @@ unsigned TpmBackend::getPcrSize ( ) {
 }
 
 TpmVersion TpmBackend::getVersion() {
-    
-
-    
-    return 
+    return T10;
 }
 
 TpmManufactur TpmBackend::getTpmManufactur ( ) {

@@ -1,6 +1,6 @@
-/* 
+/*
  *    This file is part of tpmcrypt.
- * 
+ *
  *    tpmcrypt is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
  *    the Free Software Foundation, either version 3 of the License, or
@@ -19,6 +19,7 @@
 #include <sstream>
 #include <cstring>
 #include <string>
+#include <stdexcept>
 #include <utils/KeyFile.h>
 #include <unistd.h>
 
@@ -49,59 +50,86 @@ KeyFile::~KeyFile() {
 void KeyFile::parseFile() {
     string line, volumeName, deviceName, toolName;
     size_t found = 0;
-    stringstream key, monce;
+    string key, monce;
 
     keyFile.open(keyFilePath.c_str(), ios::in);
 
     if (!keyFile.is_open()) {
-
+      throw invalid_argument("Can't open file '" + keyFilePath + "'");
     }
+
+    enum _parser_state
+    {
+      VOLUME_LIST = 0,
+      VOLUME = 1,
+      MONCE = 2,
+      KEY = 3
+    } pstate = VOLUME_LIST;
 
     while (keyFile.good()) {
-        getline(keyFile, line);
-        while (line.find(END_VOLUME) == std::string::npos) {
-            found = line.find(BEGIN_VOLUME);
-            if (found != std::string::npos) {
-                found = line.find(VOLUME_NAME);
-                if (found == 0) {
-                    volumeName = line.substr(VOLUME_NAME.length());
-                }
-                
-                found = line.find(DEVICE_NAME);
-                if (found == 0) {
-                    deviceName = line.substr(DEVICE_NAME.length());
-                }
+      for (std::string line; std::getline(keyFile, line); ) {
+        std::cout  << "Debug: " << line << ", state " << pstate << endl;
+        auto i = line.find(":");
 
-                found = line.find(TOOL_NAME);
-                if (found == 0) {
-                    toolName = line.substr(TOOL_NAME.length());
-                }
 
-                found = line.find(BEGIN_MONCE);
-                if (found != std::string::npos) {
-                    while (!line.find(END_MONCE)) {
-                        monce << line;
-                        getline(keyFile, line);
-                    }
-                }
+        switch(pstate)
+        {
+          case VOLUME_LIST:
+            if(line == BEGIN_VOLUME)
+              pstate = VOLUME;
+            else if(!line.size())
+              ;
+            else
+              throw invalid_argument("Read '" + line + "' while in VOLUME_LIST state");
+            break;
 
-                found = line.find(BEGIN_KEYBLOB);
-                if (found != std::string::npos) {
-                    while (!line.find(END_KEYBLOB)) {
-                        key << line;
-                        getline(keyFile, line);
-                    }
-                }
-
-            } else {
-                continue;
+          case VOLUME:
+            if(line == BEGIN_MONCE)
+              pstate = MONCE;
+            else if(line == END_VOLUME)
+              pstate = VOLUME_LIST;
+            else if(line == BEGIN_KEYBLOB)
+              pstate = KEY;
+            else if(i != string::npos)
+            {
+              if(line.substr(0,i) == "name")
+                cout << "Volume name is '" + line.substr(i) + "'" << endl;
+              else if(line.substr(0,i) == "device")
+                cout << "Volume device is '" + line.substr(i) + "'" << endl;
+              else if(line.substr(0,i) == "util")
+                cout << "Volume util is '" + line.substr(i) + "'" << endl;
+              else
+                throw invalid_argument("Unknown field '" + line.substr(0,i) + "'");
             }
-            getline(keyFile, line);
+            else if(!line.size())
+              ;
+            else
+              throw invalid_argument("Read '" + line + "' while in VOLUME state");
+            break;
+
+          case MONCE:
+            if(line == END_MONCE)
+              pstate = VOLUME;
+            else
+              monce += line;
+            break;
+
+          case KEY:
+           if(line == END_KEYBLOB)
+              pstate = VOLUME;
+            else
+              key += line;
+            break;
+
+          default:
+            throw runtime_error("Unknown parser state " + to_string(pstate));
         }
-        if( !volumeName.empty() && !deviceName.empty() && !toolName.empty() && key.good() && monce.good() ) {
-                volumes.push_back(Volume(volumeName, deviceName, key.str(), toolName, monce.str()));
+      }
+  }
+
+      if( !volumeName.empty() && !deviceName.empty() && !toolName.empty() && !key.size() && !monce.size() ) {
+                volumes.push_back(Volume(volumeName, deviceName, key, toolName, monce));
         }
-    }
 
     keyFile.close();
 }
@@ -115,18 +143,18 @@ void KeyFile::flushFile() {
 
     for (list<Volume>::iterator it = volumes.begin(); it != volumes.end(); ++it) {
         stringstream key, monce;
-        
+
         keyFile << BEGIN_VOLUME << endl;
 
-        keyFile << VOLUME_NAME << it->getName() << endl;
-        keyFile << DEVICE_NAME << it->getDev() << endl;
-        keyFile << TOOL_NAME << it->getTool() << endl;
-        
-        monce << it->getMonce() << endl;
-        key << it->getKeyBase64() << endl;
-        
+        keyFile << VOLUME_NAME << it->name << endl;
+        keyFile << DEVICE_NAME << it->device << endl;
+        keyFile << TOOL_NAME << it->encryptionUtil << endl;
+
+        monce << it->encryptedMonce << endl;
+        key << it->encryptedKey << endl;
+
         keyFile << BEGIN_MONCE << endl;
-        
+
         while(!monce.eof()) {
             if ((monce.tellp() % 64) == 0) {
                 keyFile << endl;
@@ -134,10 +162,10 @@ void KeyFile::flushFile() {
 
             keyFile << (char) monce.get();
         }
-        
+
         keyFile << END_MONCE << endl;
         keyFile << BEGIN_KEYBLOB << endl;
-        
+
         while(!key.eof()) {
             if ((key.tellp() % 64) == 0) {
                 keyFile << endl;
@@ -145,7 +173,7 @@ void KeyFile::flushFile() {
 
             keyFile << (char) key.get();
         }
-        
+
         keyFile << END_KEYBLOB << endl;
         keyFile << END_VOLUME << endl;
     }
@@ -155,7 +183,7 @@ void KeyFile::flushFile() {
 }
 
 void KeyFile::add(Volume vol) {
-    if (searchFile(vol.getName()) != volumes.end()) {
+    if (searchFile(vol.name) != volumes.end()) {
         throw 1;
     }
 
@@ -194,7 +222,7 @@ list<Volume> KeyFile::getAll() {
 
 list<Volume>::iterator KeyFile::searchFile(string name) {
     for (list<Volume>::iterator it = volumes.begin(); it != volumes.end(); ++it) {
-        if (it->getName() == name) {
+        if (it->name == name) {
             return it;
         }
     }
