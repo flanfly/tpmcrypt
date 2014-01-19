@@ -1,0 +1,38 @@
+
+-----BEGIN VOLUME-----
+name: vol1
+
+device: /dev/sda1
+util: LUKS
+-----BEGIN MONCE-----
+deine fette mama
+und
+papa
+
+-----END MONCE-----
+
+-----BEGIN KEYBLOB-----
+
+der
+schlüssel
+-----END KEYBLOB-----
+-----END VOLUME-----
+-----BEGIN VOLUME-----
+device: /dev/sda1
+-----BEGIN MONCE-----
+deine fette mama
+und
+papa
+
+-----END MONCE-----
+
+name: vol2
+
+util: LUKS
+-----BEGIN KEYBLOB-----
+
+der
+schlüssel
+-----END KEYBLOB-----
+-----END VOLUME-----
+
